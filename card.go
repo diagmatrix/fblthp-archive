@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"strconv"
 	"time"
 )
 
@@ -128,7 +129,16 @@ func (c RawCard) ToCard() (*Card, error) {
 	card.OracleText = c.OracleText
 	card.keywords = c.Keywords
 	card.CollectorNumber = c.CollectorNumber
-	card.ArtistID = c.ArtistIDs[0] // TODO: WTF is this?
+	card.ArtistID = c.ArtistIDs[0] // TODO: WTF is this
+
+	for _, face := range c.CardFaces {
+		subcard, err := face.ToCard()
+		if err != nil {
+			return nil, err
+		}
+		card.SubCards = append(card.SubCards, *subcard)
+	}
+
 	return card, nil
 }
 
@@ -156,6 +166,27 @@ type CardFace struct {
 	Toughness       string            `json:"toughness"`
 	TypeLine        string            `json:"type_line"`
 	Watermark       string            `json:"watermark"`
+}
+
+func (c CardFace) ToCard() (*Card, error) {
+	card := &Card{}
+	if c.Name == "" {
+		return nil, errors.New("Card name is required")
+	}
+	card.Name = c.Name
+	card.CMC = c.CMC
+	card.Colors = c.Colors
+	card.ColorIdentity = c.ColorIndicator
+	card.Types = []string{c.TypeLine} // TODO: Handle type - subtype
+	card.Subtypes = []string{}
+	card.OracleText = c.OracleText
+	card.CollectorNumber = c.PrintedName
+	artistID, err := strconv.Atoi(c.ArtistID)
+	if err != nil {
+		return nil, err
+	}
+	card.ArtistID = artistID
+	return card, nil
 }
 
 type RelatedCard struct {
