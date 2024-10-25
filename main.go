@@ -11,9 +11,16 @@ import (
 )
 
 func main() {
-	cardsFile := "cards/cards" + time.Now().Format("2006-01-02") + ".json"
-	if err := GetScryfallCards(cardsFile); err != nil {
-		log.Fatalf("failed to get Scryfall cards: %v", err)
+	//	cardsFile := "cards/cards" + time.Now().Format("2006-01-02") + ".json"
+	//	if err := GetScryfallCards(cardsFile); err != nil {
+	//		log.Fatalf("failed to get Scryfall cards: %v", err)
+	//	}
+	cards, err := NewCardsFromJSON("cards/test.json")
+	if err != nil {
+		log.Fatalf("failed to get cards from JSON: %v", err)
+	}
+	for _, card := range cards {
+		fmt.Println(card)
 	}
 }
 

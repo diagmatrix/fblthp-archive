@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
-	"strconv"
-	"time"
+	"fmt"
+	"io"
+	"os"
+	"strings"
 )
 
 type Card struct {
@@ -19,7 +22,40 @@ type Card struct {
 	OracleText      string
 	keywords        []string
 	CollectorNumber string
-	ArtistID        int
+	ArtistID        string
+}
+
+func (c Card) String() string {
+	return fmt.Sprintf(
+		"<Card: Name=%s, CMC=%f, Colors=%v, ColorIdentity=%v, Types=%v, Subtypes=%v, SetID=%s, OracleText=%s, keywords=%v, CollectorNumber=%s, ArtistID=%s>",
+		c.Name,
+		c.CMC,
+		c.Colors,
+		c.ColorIdentity,
+		c.Types,
+		c.Subtypes,
+		c.SetID,
+		c.OracleText,
+		c.keywords,
+		c.CollectorNumber,
+		c.ArtistID,
+	)
+}
+
+func NewCardsFromJSON(filename string) ([]Card, error) {
+	rawCards, err := NewRawCardsFromJSON(filename)
+	if err != nil {
+		return nil, err
+	}
+	cards := []Card{}
+	for _, rawCard := range rawCards {
+		card, err := rawCard.ToCard()
+		if err != nil {
+			return nil, err
+		}
+		cards = append(cards, *card)
+	}
+	return cards, nil
 }
 
 type RawCard struct {
@@ -62,50 +98,59 @@ type RawCard struct {
 	Toughness      string            `json:"toughness"`
 	TypeLine       string            `json:"type_line"`
 	// Print fields
-	Artist           string             `json:"artist"`
-	ArtistIDs        []int              `json:"artist_ids"`
-	AttractionLights []any              `json:"attribution_lights"` // TODO: What is this?
-	Booster          bool               `json:"booster"`
-	BorderColor      string             `json:"border_color"`
-	CardBackID       string             `json:"card_back_id"`
-	CollectorNumber  string             `json:"collector_number"`
-	ContentWarning   bool               `json:"content_warning"`
-	Digital          bool               `json:"digital"`
-	Finishes         []string           `json:"finishes"`
-	FlavorName       string             `json:"flavor_name"`
-	FlavorText       string             `json:"flavor_text"`
-	FrameEffects     []string           `json:"frame_effects"`
-	Frame            string             `json:"frame"`
-	FullArt          bool               `json:"full_art"`
-	Games            []string           `json:"games"`
-	HighresImage     bool               `json:"highres_image"`
-	IllustrationID   string             `json:"illustration_id"`
-	ImageStatus      string             `json:"image_status"`
-	ImageURIs        map[string]string  `json:"image_uris"`
-	Oversized        bool               `json:"oversized"`
-	Prices           map[string]float64 `json:"prices"`
-	PrintedName      string             `json:"printed_name"`
-	PrintedText      string             `json:"printed_text"`
-	PrintedTypeLine  string             `json:"printed_type_line"`
-	Promo            bool               `json:"promo"`
-	PromoTypes       []string           `json:"promo_types"`
-	PurchaseURIs     map[string]string  `json:"purchase_uris"`
-	Rarity           string             `json:"rarity"`
-	RelatedURIs      map[string]string  `json:"related_uris"`
-	ReleasedAt       time.Time          `json:"released_at"`
-	Reprint          bool               `json:"reprint"`
-	ScryfallSetURI   string             `json:"scryfall_set_uri"`
-	SetName          string             `json:"set_name"`
-	SetSearchURI     string             `json:"set_search_uri"`
-	SetType          string             `json:"set_type"`
-	SetURI           string             `json:"set_uri"`
-	Set              string             `json:"set"`
-	SetID            string             `json:"set_id"`
-	StorySpotlight   bool               `json:"story_spotlight"`
-	Textless         bool               `json:"textless"`
-	Variation        bool               `json:"variation"`
-	VariationOf      string             `json:"variation_of"`
-	Watermark        string             `json:"watermark"`
+	Artist           string            `json:"artist"`
+	ArtistIDs        []string          `json:"artist_ids"`
+	AttractionLights []any             `json:"attribution_lights"` // TODO: What is this?
+	Booster          bool              `json:"booster"`
+	BorderColor      string            `json:"border_color"`
+	CardBackID       string            `json:"card_back_id"`
+	CollectorNumber  string            `json:"collector_number"`
+	ContentWarning   bool              `json:"content_warning"`
+	Digital          bool              `json:"digital"`
+	Finishes         []string          `json:"finishes"`
+	FlavorName       string            `json:"flavor_name"`
+	FlavorText       string            `json:"flavor_text"`
+	FrameEffects     []string          `json:"frame_effects"`
+	Frame            string            `json:"frame"`
+	FullArt          bool              `json:"full_art"`
+	Games            []string          `json:"games"`
+	HighresImage     bool              `json:"highres_image"`
+	IllustrationID   string            `json:"illustration_id"`
+	ImageStatus      string            `json:"image_status"`
+	ImageURIs        map[string]string `json:"image_uris"`
+	Oversized        bool              `json:"oversized"`
+	Prices           map[string]string `json:"prices"`
+	PrintedName      string            `json:"printed_name"`
+	PrintedText      string            `json:"printed_text"`
+	PrintedTypeLine  string            `json:"printed_type_line"`
+	Promo            bool              `json:"promo"`
+	PromoTypes       []string          `json:"promo_types"`
+	PurchaseURIs     map[string]string `json:"purchase_uris"`
+	Rarity           string            `json:"rarity"`
+	RelatedURIs      map[string]string `json:"related_uris"`
+	ReleasedAt       string            `json:"released_at"`
+	Reprint          bool              `json:"reprint"`
+	ScryfallSetURI   string            `json:"scryfall_set_uri"`
+	SetName          string            `json:"set_name"`
+	SetSearchURI     string            `json:"set_search_uri"`
+	SetType          string            `json:"set_type"`
+	SetURI           string            `json:"set_uri"`
+	Set              string            `json:"set"`
+	SetID            string            `json:"set_id"`
+	StorySpotlight   bool              `json:"story_spotlight"`
+	Textless         bool              `json:"textless"`
+	Variation        bool              `json:"variation"`
+	VariationOf      string            `json:"variation_of"`
+	Watermark        string            `json:"watermark"`
+}
+
+func NewRawCardsFromJSON(filename string) ([]RawCard, error) {
+	cards := []RawCard{}
+	if err := readJSON(filename, &cards); err != nil {
+		return nil, err
+	}
+
+	return cards, nil
 }
 
 func (c RawCard) ToCard() (*Card, error) {
@@ -123,9 +168,13 @@ func (c RawCard) ToCard() (*Card, error) {
 	card.CMC = c.CMC
 	card.Colors = c.Colors
 	card.ColorIdentity = c.ColorIdentity
-	card.Types = []string{c.TypeLine} // TODO: Handle type - subtype
-	card.Subtypes = []string{}
-	card.SetID = c.SetID
+	types, subtypes, err := parseTypeLine(c.TypeLine)
+	if err != nil {
+		return nil, err
+	}
+	card.Types = types
+	card.Subtypes = subtypes
+	card.SetID = c.Set
 	card.OracleText = c.OracleText
 	card.keywords = c.Keywords
 	card.CollectorNumber = c.CollectorNumber
@@ -177,15 +226,15 @@ func (c CardFace) ToCard() (*Card, error) {
 	card.CMC = c.CMC
 	card.Colors = c.Colors
 	card.ColorIdentity = c.ColorIndicator
-	card.Types = []string{c.TypeLine} // TODO: Handle type - subtype
-	card.Subtypes = []string{}
-	card.OracleText = c.OracleText
-	card.CollectorNumber = c.PrintedName
-	artistID, err := strconv.Atoi(c.ArtistID)
+	types, subtypes, err := parseTypeLine(c.TypeLine)
 	if err != nil {
 		return nil, err
 	}
-	card.ArtistID = artistID
+	card.Types = types
+	card.Subtypes = subtypes
+	card.OracleText = c.OracleText
+	card.CollectorNumber = c.PrintedName
+	card.ArtistID = c.ArtistID
 	return card, nil
 }
 
@@ -196,4 +245,28 @@ type RelatedCard struct {
 	Name      string `json:"name"`
 	TypeLine  string `json:"type_line"`
 	URI       string `json:"uri"`
+}
+
+func readJSON(filename string, target *[]RawCard) error { // TODO: Change target to any
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(bytes, target)
+}
+
+func parseTypeLine(typeLine string) ([]string, []string, error) {
+	typeAndSubtype := strings.Split(typeLine, " — ")
+	if len(typeAndSubtype) != 2 {
+		return nil, nil, errors.New("Invalid type line")
+	}
+
+	return strings.Split(typeAndSubtype[0], " "), strings.Split(typeAndSubtype[1], " "), nil
 }
