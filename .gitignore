@@ -26,4 +26,5 @@ go.work.sum
 .env
 
 # Card JSON files
-cards/
+raw/
+card/

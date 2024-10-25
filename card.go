@@ -4,27 +4,28 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
 
 type Card struct {
-	layout          string
-	SubCards        []Card
-	Name            string
-	CMC             float64
-	Colors          []string
-	ColorIdentity   []string
-	Types           []string
-	Subtypes        []string
-	SetID           string
-	OracleText      string
-	keywords        []string
-	CollectorNumber string
-	ArtistID        string
+	Layout          string   `json:"layout"`
+	SubCards        []Card   `json:"subcards"`
+	Name            string   `json:"name"`
+	CMC             float64  `json:"cmc"`
+	Colors          []string `json:"colors"`
+	ColorIdentity   []string `json:"color_identity"`
+	Types           []string `json:"types"`
+	Subtypes        []string `json:"subtypes"`
+	SetID           string   `json:"set_id"`
+	OracleText      string   `json:"oracle_text"`
+	Keywords        []string `json:"keywords"`
+	CollectorNumber string   `json:"collector_number"`
+	ArtistID        []string `json:"artist_id"`
 }
 
-func (c Card) String() string {
+func (c Card) String() string { // TODO: Limit the number of fields printed
 	return fmt.Sprintf(
 		"<Card: Name=%s, CMC=%f, Colors=%v, ColorIdentity=%v, Types=%v, Subtypes=%v, SetID=%s, OracleText=%s, keywords=%v, CollectorNumber=%s, ArtistID=%s>",
 		c.Name,
@@ -35,13 +36,35 @@ func (c Card) String() string {
 		c.Subtypes,
 		c.SetID,
 		c.OracleText,
-		c.keywords,
+		c.Keywords,
 		c.CollectorNumber,
 		c.ArtistID,
 	)
 }
 
+func (c Card) ToJSON() error {
+	log.Println("Writing", c.Name, "to JSON file...")
+	cardJSON, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+
+	filename := "card/" + c.SetID + c.CollectorNumber + ".json"
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write(cardJSON)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func NewCardsFromJSON(filename string) ([]Card, error) {
+	log.Println("Populating cards from JSON...")
 	rawCards, err := NewRawCardsFromJSON(filename)
 	if err != nil {
 		return nil, err
@@ -175,9 +198,9 @@ func (c RawCard) ToCard() (*Card, error) {
 	card.Subtypes = subtypes
 	card.SetID = c.Set
 	card.OracleText = c.OracleText
-	card.keywords = c.Keywords
+	card.Keywords = c.Keywords
 	card.CollectorNumber = c.CollectorNumber
-	card.ArtistID = c.ArtistIDs[0] // TODO: WTF is this
+	card.ArtistID = c.ArtistIDs
 
 	for _, face := range c.CardFaces {
 		subcard, err := face.ToCard()
@@ -233,7 +256,7 @@ func (c CardFace) ToCard() (*Card, error) {
 	card.Subtypes = subtypes
 	card.OracleText = c.OracleText
 	card.CollectorNumber = c.PrintedName
-	card.ArtistID = c.ArtistID
+	card.ArtistID = []string{c.ArtistID}
 	return card, nil
 }
 
@@ -257,10 +280,28 @@ func readJSON(filename string, target *[]RawCard) error { // TODO: Change target
 }
 
 func parseTypeLine(typeLine string) ([]string, []string, error) {
+	typeLines := strings.Split(typeLine, " // ")
+	if len(typeLines) > 1 {
+		firstTypes, firstSubtypes, err := parseTypeLine(typeLines[0])
+		if err != nil {
+			return nil, nil, err
+		}
+		secondTypes, secondSubtypes, err := parseTypeLine(typeLines[1])
+		if err != nil {
+			return nil, nil, err
+		}
+		types := append(firstTypes, secondTypes...)
+		subtypes := append(firstSubtypes, secondSubtypes...)
+		return types, subtypes, nil
+	}
 	typeAndSubtype := strings.Split(typeLine, " — ")
-	if len(typeAndSubtype) != 2 {
+	if len(typeAndSubtype) > 2 {
 		return nil, nil, errors.New("Invalid type line")
 	}
-
-	return strings.Split(typeAndSubtype[0], " "), strings.Split(typeAndSubtype[1], " "), nil
+	types := strings.Split(typeAndSubtype[0], " ")
+	var subtypes []string
+	if len(typeAndSubtype) == 2 {
+		subtypes = strings.Split(typeAndSubtype[1], " ")
+	}
+	return types, subtypes, nil
 }

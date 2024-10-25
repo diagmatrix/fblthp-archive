@@ -11,16 +11,20 @@ import (
 )
 
 func main() {
-	//	cardsFile := "cards/cards" + time.Now().Format("2006-01-02") + ".json"
-	//	if err := GetScryfallCards(cardsFile); err != nil {
-	//		log.Fatalf("failed to get Scryfall cards: %v", err)
-	//	}
-	cards, err := NewCardsFromJSON("cards/test.json")
+	cardsFile := "raw/cards" + time.Now().Format("2006-01-02") + ".json"
+	if err := GetScryfallCards(cardsFile); err != nil {
+		log.Fatalf("failed to get Scryfall cards: %v", err)
+	}
+	cards, err := NewCardsFromJSON(cardsFile)
 	if err != nil {
 		log.Fatalf("failed to get cards from JSON: %v", err)
 	}
+
 	for _, card := range cards {
-		fmt.Println(card)
+		err = card.ToJSON()
+		if err != nil {
+			log.Fatalf("failed to write card to JSON: %v", err)
+		}
 	}
 }
 
@@ -74,7 +78,12 @@ func GetJSON(url string, target any) error {
 }
 
 func GetFile(url string, targetFile string) error {
-	log.Println("Writing file to", targetFile)
+	if _, err := os.Stat(targetFile); err == nil {
+		log.Println("File already exists:", targetFile)
+		return nil
+	}
+
+	log.Println("Writing file to", targetFile, "...")
 	r, err := http.Get(url)
 	if err != nil {
 		return err
