@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
@@ -254,12 +253,7 @@ func readJSON(filename string, target *[]RawCard) error { // TODO: Change target
 	}
 	defer file.Close()
 
-	bytes, err := io.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(bytes, target)
+	return json.NewDecoder(file).Decode(target)
 }
 
 func parseTypeLine(typeLine string) ([]string, []string, error) {
