@@ -1,18 +1,21 @@
-package main
+package model
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"os"
 	"strings"
+
+	errs "github.com/diagmatrix/fblthp-archive/errors"
+
+	"github.com/diagmatrix/fblthp-archive/utils"
 )
 
 type Card struct {
-	Layout          string   `json:"layout"`
-	SubCards        []Card   `json:"subcards"`
+	ID              int      `json:"id"`
 	Name            string   `json:"name"`
+	Layout          string   `json:"layout"`
+	Finish          string   `json:"finish"`
+	SubCards        []Card   `json:"subcards"`
 	CMC             float64  `json:"cmc"`
 	Colors          []string `json:"colors"`
 	ColorIdentity   []string `json:"color_identity"`
@@ -22,62 +25,40 @@ type Card struct {
 	OracleText      string   `json:"oracle_text"`
 	Keywords        []string `json:"keywords"`
 	CollectorNumber string   `json:"collector_number"`
-	ArtistID        []string `json:"artist_id"`
+	ArtistIDs       []string `json:"artist_id"`
 }
 
-func (c Card) String() string { // TODO: Limit the number of fields printed
+func (c Card) String() string { /// For debugging purposes
 	return fmt.Sprintf(
-		"<Card: Name=%s, CMC=%f, Colors=%v, ColorIdentity=%v, Types=%v, Subtypes=%v, SetID=%s, OracleText=%s, keywords=%v, CollectorNumber=%s, ArtistID=%s>",
+		"<Card: ID=%d, Name=%s, SetID=%s, CollectorNumber=%s, Finish=%s>",
+		c.ID,
 		c.Name,
-		c.CMC,
-		c.Colors,
-		c.ColorIdentity,
-		c.Types,
-		c.Subtypes,
 		c.SetID,
-		c.OracleText,
-		c.Keywords,
 		c.CollectorNumber,
-		c.ArtistID,
+		c.Finish,
 	)
 }
 
-func (c Card) ToJSON() error {
-	log.Println("Writing", c.Name, "to JSON file...")
-	cardJSON, err := json.Marshal(c)
-	if err != nil {
-		return err
-	}
-
-	filename := "card/" + c.SetID + c.CollectorNumber + ".json"
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write(cardJSON)
-	if err != nil {
-		return err
-	}
-	return nil
+func (c Card) ToJSON(filename string) error {
+	return utils.WriteJSON(c, filename)
 }
 
 func NewCardsFromJSON(filename string) ([]Card, error) {
-	log.Println("Populating cards from JSON...")
 	rawCards, err := NewRawCardsFromJSON(filename)
 	if err != nil {
 		return nil, err
 	}
-	cards := []Card{}
+
+	log.Println("Populating cards from JSON...")
+	cardList := []Card{}
 	for _, rawCard := range rawCards {
-		card, err := rawCard.ToCard()
+		cards, err := rawCard.ToCards()
 		if err != nil {
 			return nil, err
 		}
-		cards = append(cards, *card)
+		cardList = append(cardList, *cards...)
 	}
-	return cards, nil
+	return cardList, nil
 }
 
 type RawCard struct {
@@ -167,50 +148,69 @@ type RawCard struct {
 }
 
 func NewRawCardsFromJSON(filename string) ([]RawCard, error) {
+	log.Println("Populating raw cards from JSON...")
 	cards := []RawCard{}
-	if err := readJSON(filename, &cards); err != nil {
+	if err := utils.ReadJSON(filename, &cards); err != nil {
 		return nil, err
 	}
 
 	return cards, nil
 }
 
-func (c RawCard) ToCard() (*Card, error) {
-	card := &Card{}
-	if c.Name == "" {
-		return nil, errors.New("Card name is required")
-	}
-	if c.SetID == "" {
-		return nil, errors.New("Set ID is required")
-	}
-	if c.CollectorNumber == "" {
-		return nil, errors.New("Collector number is required")
-	}
-	card.Name = c.Name
-	card.CMC = c.CMC
-	card.Colors = c.Colors
-	card.ColorIdentity = c.ColorIdentity
-	types, subtypes, err := parseTypeLine(c.TypeLine)
-	if err != nil {
-		return nil, err
-	}
-	card.Types = types
-	card.Subtypes = subtypes
-	card.SetID = c.Set
-	card.OracleText = c.OracleText
-	card.Keywords = c.Keywords
-	card.CollectorNumber = c.CollectorNumber
-	card.ArtistID = c.ArtistIDs
+func (c RawCard) ToCards() (*[]Card, error) {
+	cards := []Card{}
+	for _, finish := range c.Finishes {
+		card := &Card{}
+		if c.Name == "" {
+			return nil, errs.NewNoCardNameError()
+		}
+		if c.SetID == "" {
+			return nil, errs.NewNoSetIDError()
+		}
+		if c.CollectorNumber == "" {
+			return nil, errs.NewNoCollectorNumberError()
+		}
 
-	for _, face := range c.CardFaces {
-		subcard, err := face.ToCard()
+		types, subtypes, err := parseTypeLine(c.TypeLine)
 		if err != nil {
 			return nil, err
 		}
-		card.SubCards = append(card.SubCards, *subcard)
+
+		card.Finish = finish
+		card.Name = c.Name
+		card.CMC = c.CMC
+		card.Colors = c.Colors
+		card.ColorIdentity = c.ColorIdentity
+		card.Types = types
+		card.Subtypes = subtypes
+		card.SetID = c.Set
+		card.OracleText = c.OracleText
+		card.Keywords = c.Keywords
+		card.CollectorNumber = c.CollectorNumber
+		card.ArtistIDs = c.ArtistIDs
+
+		for _, face := range c.CardFaces {
+			subcard, err := face.ToCard()
+			if err != nil {
+				return nil, err
+			}
+			subcard.Finish = finish
+			card.SubCards = append(card.SubCards, *subcard)
+		}
+
+		cards = append(cards, *card)
 	}
 
-	return card, nil
+	return &cards, nil
+}
+
+type RelatedCard struct {
+	ID        string `json:"id"`
+	Object    string `json:"object"`
+	Component string `json:"component"`
+	Name      string `json:"name"`
+	TypeLine  string `json:"type_line"`
+	URI       string `json:"uri"`
 }
 
 type CardFace struct {
@@ -242,7 +242,7 @@ type CardFace struct {
 func (c CardFace) ToCard() (*Card, error) {
 	card := &Card{}
 	if c.Name == "" {
-		return nil, errors.New("Card name is required")
+		return nil, errs.NewNoCardNameError()
 	}
 	card.Name = c.Name
 	card.CMC = c.CMC
@@ -256,27 +256,8 @@ func (c CardFace) ToCard() (*Card, error) {
 	card.Subtypes = subtypes
 	card.OracleText = c.OracleText
 	card.CollectorNumber = c.PrintedName
-	card.ArtistID = []string{c.ArtistID}
+	card.ArtistIDs = []string{c.ArtistID}
 	return card, nil
-}
-
-type RelatedCard struct {
-	ID        string `json:"id"`
-	Object    string `json:"object"`
-	Component string `json:"component"`
-	Name      string `json:"name"`
-	TypeLine  string `json:"type_line"`
-	URI       string `json:"uri"`
-}
-
-func readJSON(filename string, target *[]RawCard) error { // TODO: Change target to any
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	return json.NewDecoder(file).Decode(target)
 }
 
 func parseTypeLine(typeLine string) ([]string, []string, error) {
@@ -284,21 +265,24 @@ func parseTypeLine(typeLine string) ([]string, []string, error) {
 	if len(typeLines) > 1 {
 		firstTypes, firstSubtypes, err := parseTypeLine(typeLines[0])
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errs.NewCannotParseTypelineError(typeLine, err.Error())
 		}
 		secondTypes, secondSubtypes, err := parseTypeLine(typeLines[1])
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errs.NewCannotParseTypelineError(typeLine, err.Error())
 		}
 		types := append(firstTypes, secondTypes...)
 		subtypes := append(firstSubtypes, secondSubtypes...)
 		return types, subtypes, nil
 	}
+
 	typeAndSubtype := strings.Split(typeLine, " — ")
 	if len(typeAndSubtype) > 2 {
-		return nil, nil, errors.New("Invalid type line")
+		return nil, nil, errs.NewCannotParseTypelineError(typeLine, "Too many dashes")
 	}
+
 	types := strings.Split(typeAndSubtype[0], " ")
+
 	var subtypes []string
 	if len(typeAndSubtype) == 2 {
 		subtypes = strings.Split(typeAndSubtype[1], " ")
