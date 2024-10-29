@@ -28,3 +28,6 @@ go.work.sum
 # Card JSON files
 raw/
 card/
+
+# Database files
+db-data/
