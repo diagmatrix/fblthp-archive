@@ -1,27 +1,48 @@
 package main
 
 import (
+	"database/sql"
+	"github.com/diagmatrix/fblthp-archive/db"
+	_ "github.com/jackc/pgx/v5/stdlib" // Postgres SQL driver
 	"log"
-	"time"
-
-	"github.com/diagmatrix/fblthp-archive/model"
-	"github.com/diagmatrix/fblthp-archive/utils"
 )
 
 func main() {
-	cardsFile := "raw/cards" + time.Now().Format("2006-01-02") + ".json"
-	if err := utils.GetScryfallCards(cardsFile); err != nil {
-		log.Fatalf("failed to get Scryfall cards: %v", err)
-	}
-	cards, err := model.NewCardsFromJSON(cardsFile)
-	if err != nil {
-		log.Fatalf("failed to get cards from JSON: %v", err)
-	}
+	// TODO: Get from environment
+	const POSTGRES_CONNECTION_STRING = "host=localhost port=5432 user=postgres password=postgres dbname=fblthp-archive sslmode=disable"
 
-	for _, card := range cards {
-		err = card.ToJSON("card/" + card.SetID + "_" + card.CollectorNumber + "_" + card.Finish + ".json")
-		if err != nil {
-			log.Fatalf("failed to write card to JSON: %v", err)
-		}
+	// Get command line arguments
+	//argv := os.Args
+	//argc := len(argv)
+	//if argc < 2 {
+	//	log.Fatalf("No migration option provided")
+	//}
+
+	// Initialize database connection
+	conn, err := sql.Open("pgx", POSTGRES_CONNECTION_STRING)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer conn.Close()
+
+	// Initialize migration manager
+	migrationManager := db.NewMigrationManager(conn)
+
+	// Get operations
+	err = migrationManager.Process("status", "")
+	if err != nil {
+		log.Fatalf("Failed to process: %v", err)
+	}
+	err = migrationManager.Process("upgrade", "head")
+	if err != nil {
+		log.Fatalf("Failed to process: %v", err)
+	}
+	err = migrationManager.Process("generate", "")
+	if err != nil {
+		log.Fatalf("Failed to process: %v", err)
+	}
+	err = migrationManager.Process("help", "")
+	if err != nil {
+		log.Fatalf("Failed to process: %v", err)
 	}
 }

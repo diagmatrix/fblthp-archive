@@ -7,6 +7,11 @@ CREATE TABLE IF NOT EXISTS doorkeeper.migrations (
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS doorkeeper.current_migration (
+    id SERIAL PRIMARY KEY,
+    migration_id INT REFERENCES doorkeeper.migrations(id),
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Schema for the cards
 CREATE SCHEMA IF NOT EXISTS archive;

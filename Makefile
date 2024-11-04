@@ -1,5 +1,3 @@
-all: run
-
 build:
 	go build -o bin/fblthp-archive
 

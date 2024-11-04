@@ -1,7 +1,7 @@
 package storage
 
 import (
-	errs "github.com/diagmatrix/fblthp-archive/errors"
+	errs "github.com/diagmatrix/fblthp-archive/exceptions"
 
 	"github.com/diagmatrix/fblthp-archive/utils"
 )

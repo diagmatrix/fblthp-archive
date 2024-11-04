@@ -1,11 +1,11 @@
-package model
+package db
 
 import (
 	"fmt"
 	"log"
 	"strings"
 
-	errs "github.com/diagmatrix/fblthp-archive/errors"
+	errs "github.com/diagmatrix/fblthp-archive/exceptions"
 
 	"github.com/diagmatrix/fblthp-archive/utils"
 )
