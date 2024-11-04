@@ -31,3 +31,6 @@ card/
 
 # Database files
 db-data/
+
+# Editor files
+.vscode/
