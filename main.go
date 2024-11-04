@@ -2,9 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"log"
+
 	"github.com/diagmatrix/fblthp-archive/db"
 	_ "github.com/jackc/pgx/v5/stdlib" // Postgres SQL driver
-	"log"
 )
 
 func main() {
@@ -33,16 +34,28 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to process: %v", err)
 	}
-	err = migrationManager.Process("upgrade", "head")
+	err = migrationManager.Process("up", "head")
 	if err != nil {
 		log.Fatalf("Failed to process: %v", err)
 	}
-	err = migrationManager.Process("generate", "")
+	err = migrationManager.Process("status", "")
 	if err != nil {
 		log.Fatalf("Failed to process: %v", err)
 	}
-	err = migrationManager.Process("help", "")
+	err = migrationManager.Process("down", "tail")
 	if err != nil {
 		log.Fatalf("Failed to process: %v", err)
 	}
+	err = migrationManager.Process("status", "")
+	if err != nil {
+		log.Fatalf("Failed to process: %v", err)
+	}
+	// err = migrationManager.Process("generate", "")
+	// if err != nil {
+	// 	log.Fatalf("Failed to process: %v", err)
+	// }
+	// err = migrationManager.Process("help", "")
+	// if err != nil {
+	// 	log.Fatalf("Failed to process: %v", err)
+	// }
 }
