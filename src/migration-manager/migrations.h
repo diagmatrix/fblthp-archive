@@ -94,6 +94,14 @@ manager create_migration_manager(const std::string& path, sqlite3* DB);
 void execute_migration(manager& manager, const std::string& operation, const std::string& arg);
 
 /**
+ * Generates a new migration file
+ * @param manager Migration manager object
+ * @param name Name of the migration
+ * @return True if the migration was generated successfully, false otherwise
+ */
+bool generate_migration(const manager& manager, const std::string& name);
+
+/**
  * Exception raised when the migration numbers are inconsistent between the database and the local directory
  */
 class inconsistent_migrations_error final: public std::exception {

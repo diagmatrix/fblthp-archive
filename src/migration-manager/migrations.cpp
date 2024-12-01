@@ -139,6 +139,34 @@ void execute_migration(manager& manager, const std::string& operation, const std
     }
 }
 
+bool generate_migration(const manager& manager, const std::string& name) {
+    // Get date
+    std::time_t t = std::time(nullptr);
+    std::tm* now = std::localtime(&t);
+    char buffer[9];
+    std::strftime(buffer, sizeof(buffer), "%Y%m%d", now);
+
+    // Create path and file contents
+    const std::string path = manager.path + "/" + buffer + "_" + name + ".sql";
+    const std::string sql =
+        "-- MIGRATION UP START\n"
+        " << Add SQL statements for upgrade\n"
+        "-- MIGRATION UP END\n\n"
+        "-- MIGRATION DOWN START\n"
+        " << Add SQL statements for downgrade\n"
+        "-- MIGRATION DOWN END\n";
+
+    // Write to file
+    std::ofstream file(path);
+    if (file.is_open()) {
+        file << sql;
+        file.close();
+        return true;
+    }
+
+    return false;
+}
+
 // Helper functions
 // ---------------------------------------------------------------------------------------------------------------------
 bool init_migration_table(sqlite3* DB) {
