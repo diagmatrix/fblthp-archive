@@ -61,7 +61,7 @@ void execute_migration(manager& manager, const std::string& operation, const std
     if (arg == HEAD) {
         target_idx = static_cast<int>(manager.migrations.size());
     } else if (arg == BASE) {
-        target_idx = 0;
+        target_idx = INT_MAX;
     } else {  // Check if the argument is a number before this call
         target_idx = std::stoi(arg);
     }
