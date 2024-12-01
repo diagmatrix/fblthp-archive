@@ -45,6 +45,42 @@ int find_last_executed(const std::vector<migration> &migrations) {
     return -1;
 }
 
+std::string print_migrations(const std::vector<migration>& migrations) {
+    // Center string utility
+    auto center_string = [](const std::string& str, size_t width) {
+        if (str.size() >= width) {
+            return str; // No need to pad if string is already larger
+        }
+
+        size_t padding = width - str.size();
+        size_t padLeft = padding / 2; // Left padding
+        size_t padRight = padding - padLeft; // Right padding
+
+        return std::string(padLeft, ' ') + str + std::string(padRight, ' ');
+    };
+
+    // Get the maximum size of the migration name and execution time strings
+    const std::string migration = "Migration";
+    const std::string executed_at = "Executed At";
+    int mig_name_size = migration.size();
+    int exec_time_size = executed_at.size();
+    for (const auto& mig : migrations) {
+        mig_name_size = std::max(static_cast<int>(mig.name.size()), mig_name_size);
+        exec_time_size = std::max(static_cast<int>(mig.exec_time.size()), exec_time_size);
+    }
+
+    // Create the table
+    const std::string separator = "+-" + std::string(mig_name_size, '-') + "-+-" + std::string(exec_time_size, '-') + "-+";
+    const std::string header = "| " + center_string(migration, mig_name_size) + " | " + center_string(executed_at, exec_time_size) + " |";
+    std::string table = separator + "\n" + header + "\n" + separator + "\n";
+    for (const auto& mig : migrations) {
+        table += "| " + center_string(mig.name, mig_name_size) + " | " + center_string(mig.exec_time, exec_time_size) + " |\n";
+        table += separator + "\n";
+    }
+
+    return table;
+}
+
 // Migration manager functions
 // ---------------------------------------------------------------------------------------------------------------------
 manager create_migration_manager(const std::string &path, sqlite3* DB) {

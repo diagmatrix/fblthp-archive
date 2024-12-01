@@ -60,6 +60,13 @@ std::vector<migration> scan_migrations(const std::string& path, sqlite3* DB);
 int find_last_executed(const std::vector<migration>& migrations);
 
 /**
+ * Prints the list of migrations
+ * @param migrations List of migrations
+ * @return String with the list of migrations pretty printed
+ */
+std::string print_migrations(const std::vector<migration>& migrations);
+
+/**
  * Struct to hold migration manager information
  */
 struct manager {
