@@ -1,3 +1,10 @@
+/**
+ * Migration manager for handling database migrations
+ * @author diagmatrix
+ * @date 2024
+ * @version 1.0
+ */
+
 #include <iostream>
 #include <sqlite3.h>
 #include <regex>
