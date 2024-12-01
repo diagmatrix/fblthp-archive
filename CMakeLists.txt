@@ -12,10 +12,12 @@ add_executable(doorkeeper src/migration-manager/main.cpp
         src/migration-manager/migrations.h
         src/migration-manager/migrations.cpp
         src/migration-manager/main.cpp
+        src/exceptions.h
 )
 target_link_libraries(doorkeeper PRIVATE sqlite3)
 
 # Collection manager
-add_executable(fblthp src/fblthp/main.cpp)
+add_executable(fblthp src/fblthp/main.cpp
+        src/exceptions.h)
 target_include_directories(fblthp PUBLIC lib) # Path to json.hpp
 target_link_libraries(fblthp PRIVATE sqlite3 CURL::libcurl)

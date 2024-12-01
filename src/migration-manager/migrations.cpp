@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "migrations.h"
+#include "../exceptions.h"
 
 namespace fs = std::filesystem;
 using namespace migration_constants;
