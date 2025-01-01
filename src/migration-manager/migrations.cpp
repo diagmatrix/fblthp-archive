@@ -37,7 +37,7 @@ std::vector<migration> scan_migrations(const std::string& path, sqlite3* DB) {
     return migrations;
 }
 
-int find_last_executed(const std::vector<migration> &migrations) {
+int find_last_executed(const std::vector<migration>& migrations) {
     for (int i = static_cast<int>(migrations.size()) - 1; i >= 0; i--) {
         if (!migrations[i].exec_time.empty()) {
             return i;
@@ -84,7 +84,7 @@ std::string print_migrations(const std::vector<migration>& migrations) {
 
 // Migration manager functions
 // ---------------------------------------------------------------------------------------------------------------------
-manager create_migration_manager(const std::string &path, sqlite3* DB) {
+manager create_migration_manager(const std::string& path, sqlite3* DB) {
     manager manager;
     manager.path = path;
     manager.DB = DB;
@@ -98,8 +98,8 @@ void execute_migration(manager& manager, const std::string& operation, const std
     if (arg == HEAD) {
         target_idx = static_cast<int>(manager.migrations.size());
     } else if (arg == BASE) {
-        target_idx = INT_MAX;
-    } else {  // Check if the argument is a number before this call
+        target_idx = INT32_MAX; // This "should" be large enough
+    } else {
         target_idx = std::stoi(arg);
     }
 

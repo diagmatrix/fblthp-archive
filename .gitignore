@@ -1,3 +1,6 @@
 .idea
 cmake-build-*
 lib
+.vscode
+obj
+bin

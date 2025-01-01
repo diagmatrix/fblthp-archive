@@ -13,6 +13,7 @@ add_executable(doorkeeper src/migration-manager/main.cpp
         src/migration-manager/migrations.cpp
         src/migration-manager/main.cpp
         src/exceptions.h
+        src/env.h
 )
 target_link_libraries(doorkeeper PRIVATE sqlite3)
 

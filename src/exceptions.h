@@ -26,8 +26,8 @@ public:
 class migration_execution_error final: public std::exception {
     std::string msg;
 public:
-    explicit migration_execution_error(const std::string& msg) {
-        this->msg = "Error: Migration execution failed - " + msg;
+    explicit migration_execution_error(const std::string& message) {
+        this->msg = "Error: Migration execution failed - " + message;
     }
     const char* what() const noexcept override {
         return this->msg.c_str();
@@ -40,8 +40,8 @@ public:
 class parse_migration_error final: public std::exception {
     std::string msg;
 public:
-    explicit parse_migration_error(const std::string& msg) {
-        this->msg = "Error: Migration parsing failed - " + msg;
+    explicit parse_migration_error(const std::string& message) {
+        this->msg = "Error: Migration parsing failed - " + message;
     }
     const char* what() const noexcept override {
         return this->msg.c_str();
