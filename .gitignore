@@ -4,3 +4,6 @@ lib
 .vscode
 obj
 bin
+.env
+*.db
+data
