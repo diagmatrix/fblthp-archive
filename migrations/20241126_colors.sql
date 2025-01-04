@@ -1,13 +1,13 @@
 -- MIGRATION UP START
 ------------------------------------------------------------------------------------------------------------------------
 CREATE TABLE colors (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     white BOOLEAN NOT NULL,
     blue BOOLEAN NOT NULL,
     black BOOLEAN NOT NULL,
     red BOOLEAN NOT NULL,
-    green BOOLEAN NOT NULL
+    green BOOLEAN NOT NULL,
+    _id INTEGER PRIMARY KEY AUTOINCREMENT
 );
 INSERT INTO colors(name, white, blue, black, red, green) VALUES
 ('Colorless', FALSE, FALSE, FALSE, FALSE, FALSE),

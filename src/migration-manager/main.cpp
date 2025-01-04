@@ -13,7 +13,7 @@
 #include <cstdlib>
 
 #include "migrations.h"
-#include "../env.h"
+#include "env.h"
 
 const std::map<std::string, std::string> DEFAULT_ENV = {
     {"MIGRATIONS_DB", "default.db"},
